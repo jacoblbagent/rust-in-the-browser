@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rust in the browser</title>
+<meta name="description" content="Four compute-heavy demos written in Rust, compiled to WebAssembly, running live in the page.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e0c0c'/%3E%3Cpath d='M11 22V10h6a4 4 0 0 1 0 8h-4l5 4' fill='none' stroke='%23d2622f' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <a class="mark" href="#top">
+      <svg class="mark-glyph" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M11 22V10h6a4 4 0 0 1 0 8h-4l5 4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Rust in the browser
+    </a>
+    <nav class="bar-nav">
+      <a href="#fractal">Fractal</a>
+      <a href="#galaxy">Galaxy</a>
+      <a href="#life">Life</a>
+      <a href="#knot">Surface</a>
+      <a href="#build">Build</a>
+    </nav>
+    <span class="chip" id="wasm-size">wasm</span>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="lede">
+    <h1>Four demos in Rust, compiled to WebAssembly.</h1>
+    <p class="lede-copy">Every demo on this page runs compiled Rust in this tab. The simulation state, the inner loops and the draw calls live in the Rust crate. JavaScript starts each demo, stops it, and reads the counters.</p>
+    <dl class="specs" id="specs">
+      <div><dt>Compiled with</dt><dd data-k="toolchain">reading module…</dd></div>
+      <div><dt>Target</dt><dd>wasm32-unknown-unknown</dd></div>
+      <div><dt>Release profile</dt><dd>opt-level 3, LTO, panic=abort</dd></div>
+      <div><dt>Vector target</dt><dd data-k="simd">simd128</dd></div>
+      <div><dt>Graphics</dt><dd>WebGL2, called from Rust</dd></div>
+      <div><dt>Rust source</dt><dd data-k="loc">6 files</dd></div>
+    </dl>
+  </section>
+
+  <section class="demo" id="fractal">
+    <div class="demo-text">
+      <h2>The fractal benchmark</h2>
+      <p>Each pixel runs an escape-time loop, up to 320 iterations of complex multiplication, and takes its colour from how long it took to escape. The same arithmetic runs three times: compiled from Rust two pixels at a time, compiled from Rust one pixel at a time, and written out as JavaScript below. All three fill an RGBA buffer of 720 by 540 pixels, and the page compares the output byte for byte.</p>
+      <div class="controls">
+        <label class="ctl">
+          <span>Iterations <b id="f-iters-out">320</b></span>
+          <input type="range" id="f-iters" min="64" max="1024" step="32" value="320">
+        </label>
+        <label class="ctl">
+          <span>Zoom <b id="f-zoom-out">1.0&times;</b></span>
+          <input type="range" id="f-zoom" min="1" max="400" step="1" value="1">
+        </label>
+        <button class="btn btn-primary" id="f-run" type="button">Run benchmark</button>
+      </div>
+      <dl class="readout">
+        <div><dt>Rust, two-lane kernel</dt><dd data-k="wide">–</dd></div>
+        <div><dt>Rust, scalar kernel</dt><dd data-k="scalar">–</dd></div>
+        <div><dt>JavaScript</dt><dd data-k="js">–</dd></div>
+        <div><dt>Vector gain over JavaScript</dt><dd data-k="gain">–</dd></div>
+        <div><dt>Byte comparison</dt><dd data-k="match">–</dd></div>
+        <div><dt>Live render</dt><dd data-k="fps">–</dd></div>
+      </dl>
+      <p class="note">Expect the scalar kernel and the JavaScript to land close together. This loop is a dependency chain of f64 multiplies, which is the shape of code a just-in-time compiler handles best. The two-lane kernel is where the gap opens: WebAssembly has vector instructions, and JavaScript has no way to reach them.</p>
+    </div>
+    <figure class="stage" data-stage>
+      <canvas id="fractal-canvas" aria-label="Mandelbrot set rendered by Rust"></canvas>
+      <figcaption class="stage-state" data-state></figcaption>
+    </figure>
+  </section>
+
+  <section class="demo" id="galaxy">
+    <div class="demo-text">
+      <h2>A disc of bodies under gravity</h2>
+      <p>Each body is pulled toward a central mass by an inverse-square force and integrated with a symplectic Euler step. Rust holds the positions, runs the integration, writes the vertex buffer and issues the draw call. WebGL2 renders the bodies as additive point sprites, coloured by distance from the centre, so the core reads hot cream and the outer disc falls away through amber into rust.</p>
+      <div class="controls">
+        <label class="ctl">
+          <span>Bodies <b id="g-count-out">120,000</b></span>
+          <input type="range" id="g-count" min="20000" max="200000" step="10000" value="120000">
+        </label>
+        <button class="btn" id="g-infall" type="button">Add infalling cloud</button>
+        <button class="btn" id="g-reset" type="button">Reset disc</button>
+      </div>
+      <dl class="readout">
+        <div><dt>Bodies integrated</dt><dd data-k="bodies">–</dd></div>
+        <div><dt>Integration, per frame</dt><dd data-k="step">–</dd></div>
+        <div><dt>Full step and draw</dt><dd data-k="frame">–</dd></div>
+        <div><dt>Frame rate</dt><dd data-k="fps">–</dd></div>
+      </dl>
+    </div>
+    <figure class="stage" data-stage>
+      <canvas id="galaxy-canvas" aria-label="Galactic disc simulated by Rust"></canvas>
+      <figcaption class="stage-state" data-state></figcaption>
+    </figure>
+  </section>
+
+  <section class="demo" id="life">
+    <div class="demo-text">
+      <h2>A million cells, stepped in Rust</h2>
+      <p>Conway's Game of Life on a 1,200 by 900 grid with wrapping edges. Every generation counts eight neighbours for each of the 1,080,000 cells. Rust steps the grid and paints the result into an RGBA buffer; a cell that has just died is left behind as a cooling ember, which shows where the activity has moved.</p>
+      <div class="controls">
+        <button class="btn" id="l-toggle" type="button">Pause</button>
+        <button class="btn" id="l-step" type="button">Step once</button>
+        <button class="btn" id="l-reseed" type="button">New soup</button>
+        <label class="ctl">
+          <span>Generations per frame <b id="l-gen-out">1</b></span>
+          <input type="range" id="l-gen" min="1" max="8" step="1" value="1">
+        </label>
+      </div>
+      <dl class="readout">
+        <div><dt>Cells</dt><dd data-k="cells">–</dd></div>
+        <div><dt>Generation time</dt><dd data-k="gen">–</dd></div>
+        <div><dt>Generations per second</dt><dd data-k="gps">–</dd></div>
+        <div><dt>Living cells</dt><dd data-k="pop">–</dd></div>
+      </dl>
+    </div>
+    <figure class="stage" data-stage>
+      <canvas id="life-canvas" aria-label="Conway's Game of Life stepped by Rust"></canvas>
+      <figcaption class="stage-state" data-state></figcaption>
+    </figure>
+  </section>
+
+  <section class="demo" id="knot">
+    <div class="demo-text">
+      <h2>A surface built from scratch</h2>
+      <p>A (2,3) torus knot: a circular tube swept along a curve that winds twice around one axis and three times around the other. Rust generates the vertices, carries a parallel-transport frame along the curve so the tube never pinches, builds the index buffer, and shades it with a key light, a fill and a rim. Depth testing and back-face culling are on. There is no 3D engine in the build.</p>
+      <div class="controls">
+        <button class="btn" id="k-toggle" type="button">Pause rotation</button>
+      </div>
+      <dl class="readout">
+        <div><dt>Vertices</dt><dd data-k="verts">–</dd></div>
+        <div><dt>Triangles</dt><dd data-k="tris">–</dd></div>
+        <div><dt>Index buffer</dt><dd data-k="idx">–</dd></div>
+        <div><dt>Draw, per frame</dt><dd data-k="draw">–</dd></div>
+        <div><dt>Frame rate</dt><dd data-k="fps">–</dd></div>
+      </dl>
+    </div>
+    <figure class="stage" data-stage>
+      <canvas id="knot-canvas" aria-label="Torus knot generated and shaded by Rust"></canvas>
+      <figcaption class="stage-state" data-state></figcaption>
+    </figure>
+  </section>
+
+  <section class="build" id="build">
+    <h2>What the browser loads</h2>
+    <p>One WebAssembly module and a small generated JavaScript shim. The figures below are read from this tab's own copy of the module at load time, not written into the page.</p>
+    <dl class="specs specs-wide">
+      <div><dt>Module bytes</dt><dd data-k="bytes">–</dd></div>
+      <div><dt>Transferred</dt><dd data-k="transfer">–</dd></div>
+      <div><dt>Compiled with</dt><dd data-k="toolchain">–</dd></div>
+      <div><dt>Built</dt><dd data-k="built">–</dd></div>
+      <div><dt>Dependencies</dt><dd>wasm-bindgen, js-sys, web-sys</dd></div>
+      <div><dt>Vector target</dt><dd data-k="simd">–</dd></div>
+      <div><dt>Exported API</dt><dd data-k="exports">–</dd></div>
+    </dl>
+
+    <h3>The inner loops</h3>
+    <p>Three versions of the escape-time loop that the benchmark times. The JavaScript is written to mirror the scalar Rust kernel statement for statement; the vector kernel has no JavaScript equivalent.</p>
+    <div class="code-pair">
+      <div class="code-block">
+        <h4>Rust, src/mandel.rs, scalar</h4>
+<pre><code>let (mut zr, mut zi) = (0.0f64, 0.0f64);
+let (mut zr2, mut zi2) = (0.0f64, 0.0f64);
+let mut i = 0u32;
+while i &lt; max_iter &amp;&amp; zr2 + zi2 &lt;= 4.0 {
+    zi = 2.0 * zr * zi + ci;
+    zr = zr2 - zi2 + cr;
+    zr2 = zr * zr;
+    zi2 = zi * zi;
+    i += 1;
+}</code></pre>
+      </div>
+      <div class="code-block">
+        <h4>Rust, src/mandel.rs, two-lane</h4>
+<pre><code>let mut counts = i64x2_splat(0);
+let mut done = i64x2_splat(0);
+while k &lt; max_iter {
+    zi = f64x2_add(f64x2_mul(f64x2_mul(two, zr), zi), civ);
+    zr = f64x2_add(f64x2_sub(zr2, zi2), crv);
+    zr2 = f64x2_mul(zr, zr);
+    zi2 = f64x2_mul(zi, zi);
+    let mag = f64x2_add(zr2, zi2);
+    counts = i64x2_add(counts, v128_andnot(one, done));
+    done = v128_or(done, f64x2_gt(mag, four));
+    if i64x2_all_true(done) { break; }
+    k += 1;
+}</code></pre>
+      </div>
+      <div class="code-block">
+        <h4>JavaScript, www/app.js</h4>
+<pre><code>let zr = 0, zi = 0;
+let zr2 = 0, zi2 = 0;
+let i = 0;
+while (i &lt; maxIter &amp;&amp; zr2 + zi2 &lt;= 4) {
+  zi = 2 * zr * zi + ci;
+  zr = zr2 - zi2 + cr;
+  zr2 = zr * zr;
+  zi2 = zi * zi;
+  i++;
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p>Source at <span class="path">~/Code/rust-in-the-browser</span>. MIT licensed.</p>
+  <p class="foot-sub" id="foot-toolchain">Rust compiled to WebAssembly, rendered with WebGL2.</p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

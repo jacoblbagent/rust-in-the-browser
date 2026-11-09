@@ -1,0 +1,17 @@
+{
+  "name": "rust-in-the-browser",
+  "type": "module",
+  "description": "Four compute-heavy demos written in Rust and compiled to WebAssembly, running live in the page.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "rust_in_the_browser_bg.wasm",
+    "rust_in_the_browser.js",
+    "rust_in_the_browser.d.ts"
+  ],
+  "main": "rust_in_the_browser.js",
+  "types": "rust_in_the_browser.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
